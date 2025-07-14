@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ClientController;
-// middleware(['web', 'auth:client'])->
+
 Route::prefix('client')->group(function () {
     Route::get('/dashboard', [ClientController::class, 'index'])->name('client.dashboard');
     Route::view('/', 'client.index-two')->name('home');

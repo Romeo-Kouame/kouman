@@ -25,7 +25,9 @@ class HebergementController extends Controller
     {
         $hebergements = Hebergement::where('id', Auth::guard('partenaire')->id())->with('images')->get();
         // dd($hebergements);
-        return view('screens.add.hebergement.hebergement', compact('hebergements'));
+        // return view('screens.add.hebergement.hebergement', compact('hebergements'));
+        return response()->file(resource_path('views/screens/add/hebergement/hebergement.blade.php'));
+
     }
 
     /**
@@ -70,6 +72,7 @@ class HebergementController extends Controller
             'description' => $request->description,
             'prixParNuit' => $request->prixParNuit,
             'devise' => $request->devise,
+            'numeroDeTel' => $request->numeroDeTel,
             'idLocalisation' => $localisation->id,
             'idPartenaire' => Auth::guard('partenaire')->id(), // Assumes partenaire is linked to user
             'nombreChambres' => $request->nombreChambres,
@@ -99,7 +102,7 @@ class HebergementController extends Controller
             foreach ($newImages as $index => $image) {
                 $path = $image->store('hebergements', 'public');
                 $images = ImagesHebergement::create([
-                    'idHebergement' => $hebergement->idHebergement,
+                    'idHebergement' => $hebergement->id,
                     'url' => $path,
                     'estPrincipale' => $index === 0, // Première image principale
                 ]);
@@ -129,19 +132,24 @@ class HebergementController extends Controller
      */
     public function show(string $id)
     {
-        $hebergement = Hebergement::with([
-            'imagePrincipale', // Correction : remplacé 'estPrincipale' par 'imagePrincipale'
-            'images',
-            'localisation',
-            'type',
-            'avis',
-            'equipements',
-            'prixSaisonniers'
-        ])
-        ->where('id', Auth::guard('partenaire')->id())
-        ->findOrFail($id);
-        // dd($hebergement->imagePrincipale()->firstOrCreate());
-        return view('screens.add.hebergement.hebergement-detail', compact('hebergement'));
+        try {
+            $partenaireId = Auth::guard('partenaire')->id();
+            $hebergement = Hebergement::with([
+                'imagePrincipale',
+                'images',
+                'localisation',
+                'type',
+                'avis',
+                'equipements',
+                'prixSaisonniers'
+            ])
+            ->where('idPartenaire', $partenaireId)
+            ->findOrFail($id);
+
+            return view('screens.add.hebergement.hebergement-detail', compact('hebergement'));
+        } catch (\Exception $e) {
+            dd($e->getMessage(), $e->getTraceAsString());
+        }
     }
 
     /**
@@ -186,7 +194,7 @@ class HebergementController extends Controller
             'description' => 'nullable|string',
             'prixParNuit' => 'required|numeric|min:0',
             'devise' => 'required|in:CFA,EUR,USD,GBP,CAD,AUD',
-            'idPolitiqueAnnulation' => 'required|exists:politiques_annulation,idPolitique',
+            'idPolitiqueAnnulation' => 'required|exists:politiques_annulation,idPolitiqueAnnulation',
             'nombreChambres' => 'required|integer|min:1',
             'nombreSallesDeBain' => 'required|integer|min:1',
             'capaciteMax' => 'required|integer|min:1',
@@ -230,6 +238,7 @@ class HebergementController extends Controller
             'description' => $validated['description'],
             'prixParNuit' => $validated['prixParNuit'],
             'devise' => $validated['devise'],
+            'numeroDeTel' => $validated['numeroDeTel'],
             'idPolitiqueAnnulation' => $validated['idPolitiqueAnnulation'],
             'nombreChambres' => $validated['nombreChambres'],
             'nombreSallesDeBain' => $validated['nombreSallesDeBain'],
